@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLMS - Teacher Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <h1>Teacher Dashboard</h1>
+            <div class="user-info">
+                <span id="userName">Welcome, Teacher</span>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <nav class="dashboard-nav">
+            <button class="nav-btn active" data-section="materials">Study Materials</button>
+            <button class="nav-btn" data-section="assignments">Assignments</button>
+            <button class="nav-btn" data-section="attendance">Attendance</button>
+            <button class="nav-btn" data-section="quizzes">Quizzes</button>
+            <button class="nav-btn" data-section="notifications">Notifications</button>
+        </nav>
+
+        <main class="dashboard-content">
+            <!-- Study Materials Section -->
+            <section id="materials" class="content-section active">
+                <div class="section-header">
+                    <h2>Study Materials</h2>
+                    <button id="addMaterialBtn" class="btn btn-primary">Add Material</button>
+                </div>
+                <div id="materialsList" class="materials-grid">
+                    <!-- Materials will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Assignments Section -->
+            <section id="assignments" class="content-section">
+                <div class="section-header">
+                    <h2>Assignments</h2>
+                    <button id="addAssignmentBtn" class="btn btn-primary">Create Assignment</button>
+                </div>
+                <div id="assignmentsList" class="assignments-grid">
+                    <!-- Assignments will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Attendance Section -->
+            <section id="attendance" class="content-section">
+                <div class="section-header">
+                    <h2>Mark Attendance</h2>
+                    <input type="date" id="attendanceDate" class="form-control">
+                </div>
+                <div id="studentsList" class="students-grid">
+                    <!-- Students will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Quizzes Section -->
+            <section id="quizzes" class="content-section">
+                <div class="section-header">
+                    <h2>Quizzes</h2>
+                    <button id="addQuizBtn" class="btn btn-primary">Create Quiz</button>
+                </div>
+                <div id="quizzesList" class="quizzes-grid">
+                    <!-- Quizzes will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section id="notifications" class="content-section">
+                <div class="section-header">
+                    <h2>Send Notifications</h2>
+                    <button id="addNotificationBtn" class="btn btn-primary">Send Notification</button>
+                </div>
+                <div id="notificationsList" class="notifications-grid">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Add Material Modal -->
+    <div id="materialModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Study Material</h3>
+            <form id="materialForm">
+                <div class="form-group">
+                    <label for="materialTitle">Title:</label>
+                    <input type="text" id="materialTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="materialDescription">Description:</label>
+                    <textarea id="materialDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="materialFile">Upload File:</label>
+                    <input type="file" id="materialFile" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload Material</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Assignment Modal -->
+    <div id="assignmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Create Assignment</h3>
+            <form id="assignmentForm">
+                <div class="form-group">
+                    <label for="assignmentTitle">Title:</label>
+                    <input type="text" id="assignmentTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="assignmentDescription">Description:</label>
+                    <textarea id="assignmentDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="assignmentDeadline">Deadline:</label>
+                    <input type="datetime-local" id="assignmentDeadline" required>
+                </div>
+                <div class="form-group">
+                    <label for="assignmentFile">Upload File (Optional):</label>
+                    <input type="file" id="assignmentFile">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Assignment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Quiz Modal -->
+    <div id="quizModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Create Quiz</h3>
+            <form id="quizForm">
+                <div class="form-group">
+                    <label for="quizQuestion">Question:</label>
+                    <textarea id="quizQuestion" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="option1">Option 1:</label>
+                    <input type="text" id="option1" required>
+                </div>
+                <div class="form-group">
+                    <label for="option2">Option 2:</label>
+                    <input type="text" id="option2" required>
+                </div>
+                <div class="form-group">
+                    <label for="option3">Option 3:</label>
+                    <input type="text" id="option3" required>
+                </div>
+                <div class="form-group">
+                    <label for="option4">Option 4:</label>
+                    <input type="text" id="option4" required>
+                </div>
+                <div class="form-group">
+                    <label for="correctAnswer">Correct Answer (1-4):</label>
+                    <select id="correctAnswer" required>
+                        <option value="">Select Correct Answer</option>
+                        <option value="0">Option 1</option>
+                        <option value="1">Option 2</option>
+                        <option value="2">Option 3</option>
+                        <option value="3">Option 4</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Quiz</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Notification Modal -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Send Notification</h3>
+            <form id="notificationForm">
+                <div class="form-group">
+                    <label for="notificationTitle">Title:</label>
+                    <input type="text" id="notificationTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="notificationMessage">Message:</label>
+                    <textarea id="notificationMessage" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="targetRole">Target:</label>
+                    <select id="targetRole" required>
+                        <option value="student">Students</option>
+                        <option value="teacher">Teachers</option>
+                        <option value="all">All Users</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Send Notification</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Submissions Modal -->
+    <div id="submissionsModal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h3>Assignment Submissions</h3>
+            <div id="submissionsList">
+                <!-- Submissions will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/teacher.js"></script>
+</body>
+</html>

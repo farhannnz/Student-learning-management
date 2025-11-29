@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Materials Loading</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h2>Materials Loading Test</h2>
+            <button id="testBtn" class="btn btn-primary">Test Materials Query</button>
+            <button id="testAuthBtn" class="btn btn-secondary">Test Auth</button>
+            <div id="results" style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 5px;">
+                Results will appear here...
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const testBtn = document.getElementById('testBtn');
+            const testAuthBtn = document.getElementById('testAuthBtn');
+            const results = document.getElementById('results');
+            
+            testBtn.addEventListener('click', async () => {
+                results.innerHTML = 'Testing materials query...';
+                
+                try {
+                    console.log('Testing materials query...');
+                    
+                    // Test simple materials query
+                    const { data: materials, error } = await supabase
+                        .from('materials')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    console.log('Materials result:', { materials, error });
+                    
+                    if (error) {
+                        results.innerHTML = `
+                            <h3>Error:</h3>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        `;
+                    } else {
+                        results.innerHTML = `
+                            <h3>Success! Found ${materials.length} materials:</h3>
+                            <pre>${JSON.stringify(materials, null, 2)}</pre>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Test error:', error);
+                    results.innerHTML = `
+                        <h3>Exception:</h3>
+                        <pre>${error.message}</pre>
+                    `;
+                }
+            });
+            
+            testAuthBtn.addEventListener('click', async () => {
+                results.innerHTML = 'Testing authentication...';
+                
+                try {
+                    console.log('Testing auth...');
+                    
+                    // Test auth
+                    const { data: { user }, error: authError } = await supabase.auth.getUser();
+                    console.log('Auth result:', { user, authError });
+                    
+                    let profileData = null;
+                    let profileError = null;
+                    
+                    if (user) {
+                        // Test profile query
+                        const { data, error } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', user.id)
+                            .single();
+                        
+                        profileData = data;
+                        profileError = error;
+                        console.log('Profile result:', { profileData, profileError });
+                    }
+                    
+                    results.innerHTML = `
+                        <h3>Authentication Test Results:</h3>
+                        <h4>User:</h4>
+                        <pre>${JSON.stringify(user, null, 2)}</pre>
+                        <h4>Auth Error:</h4>
+                        <pre>${JSON.stringify(authError, null, 2)}</pre>
+                        <h4>Profile:</h4>
+                        <pre>${JSON.stringify(profileData, null, 2)}</pre>
+                        <h4>Profile Error:</h4>
+                        <pre>${JSON.stringify(profileError, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    console.error('Auth test error:', error);
+                    results.innerHTML = `
+                        <h3>Exception:</h3>
+                        <pre>${error.message}</pre>
+                    `;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

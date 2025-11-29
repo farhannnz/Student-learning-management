@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test All Queries</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h2>Test All Database Queries</h2>
+            <button id="testMaterials" class="btn btn-primary">Test Materials</button>
+            <button id="testAssignments" class="btn btn-secondary">Test Assignments</button>
+            <button id="testQuizzes" class="btn btn-success">Test Quizzes</button>
+            <button id="testAttendance" class="btn btn-danger">Test Attendance</button>
+            <div id="results" style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 5px; max-height: 400px; overflow-y: auto;">
+                Click buttons to test queries...
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const results = document.getElementById('results');
+            
+            document.getElementById('testMaterials').addEventListener('click', async () => {
+                results.innerHTML = 'Testing materials query...';
+                try {
+                    const { data, error } = await supabase
+                        .from('materials')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    results.innerHTML = `
+                        <h3>Materials Query Result:</h3>
+                        <p><strong>Count:</strong> ${data?.length || 0}</p>
+                        <p><strong>Error:</strong> ${error ? JSON.stringify(error) : 'None'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    results.innerHTML = `<h3>Exception:</h3><pre>${error.message}</pre>`;
+                }
+            });
+            
+            document.getElementById('testAssignments').addEventListener('click', async () => {
+                results.innerHTML = 'Testing assignments query...';
+                try {
+                    const { data, error } = await supabase
+                        .from('assignments')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    results.innerHTML = `
+                        <h3>Assignments Query Result:</h3>
+                        <p><strong>Count:</strong> ${data?.length || 0}</p>
+                        <p><strong>Error:</strong> ${error ? JSON.stringify(error) : 'None'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    results.innerHTML = `<h3>Exception:</h3><pre>${error.message}</pre>`;
+                }
+            });
+            
+            document.getElementById('testQuizzes').addEventListener('click', async () => {
+                results.innerHTML = 'Testing quizzes query...';
+                try {
+                    const { data, error } = await supabase
+                        .from('quizzes')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    
+                    results.innerHTML = `
+                        <h3>Quizzes Query Result:</h3>
+                        <p><strong>Count:</strong> ${data?.length || 0}</p>
+                        <p><strong>Error:</strong> ${error ? JSON.stringify(error) : 'None'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    results.innerHTML = `<h3>Exception:</h3><pre>${error.message}</pre>`;
+                }
+            });
+            
+            document.getElementById('testAttendance').addEventListener('click', async () => {
+                results.innerHTML = 'Testing attendance query...';
+                try {
+                    const { data, error } = await supabase
+                        .from('attendance')
+                        .select('*')
+                        .order('date', { ascending: false });
+                    
+                    results.innerHTML = `
+                        <h3>Attendance Query Result:</h3>
+                        <p><strong>Count:</strong> ${data?.length || 0}</p>
+                        <p><strong>Error:</strong> ${error ? JSON.stringify(error) : 'None'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } catch (error) {
+                    results.innerHTML = `<h3>Exception:</h3><pre>${error.message}</pre>`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Modal Test</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h2>Modal Debug Test</h2>
+            <button id="testModalBtn" class="btn btn-primary">Test Modal</button>
+            <button id="addMaterialBtn" class="btn btn-secondary">Add Material (Original)</button>
+        </div>
+    </div>
+
+    <!-- Test Modal -->
+    <div id="testModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Test Modal</h3>
+            <p>This is a test modal to check if modals work.</p>
+        </div>
+    </div>
+
+    <!-- Add Material Modal (Copy from teacher.html) -->
+    <div id="materialModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Add Study Material</h3>
+            <form id="materialForm">
+                <div class="form-group">
+                    <label for="materialTitle">Title:</label>
+                    <input type="text" id="materialTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="materialDescription">Description:</label>
+                    <textarea id="materialDescription" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="materialFile">Upload File:</label>
+                    <input type="file" id="materialFile" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Upload Material</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        console.log('Debug script loaded');
+        
+        // Test modal functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded');
+            
+            // Test button
+            const testBtn = document.getElementById('testModalBtn');
+            const testModal = document.getElementById('testModal');
+            
+            if (testBtn && testModal) {
+                testBtn.addEventListener('click', () => {
+                    console.log('Test button clicked');
+                    testModal.style.display = 'block';
+                });
+            } else {
+                console.error('Test button or modal not found');
+            }
+            
+            // Original add material button
+            const addMaterialBtn = document.getElementById('addMaterialBtn');
+            const materialModal = document.getElementById('materialModal');
+            
+            if (addMaterialBtn && materialModal) {
+                addMaterialBtn.addEventListener('click', () => {
+                    console.log('Add material button clicked');
+                    materialModal.style.display = 'block';
+                });
+            } else {
+                console.error('Add material button or modal not found');
+            }
+            
+            // Close modal handlers
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', (e) => {
+                    console.log('Close button clicked');
+                    e.target.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    console.log('Clicked outside modal');
+                    e.target.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

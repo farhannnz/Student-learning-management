@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Quiz Modal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h2>Quiz Modal Test</h2>
+            
+            <!-- Test Quiz Button -->
+            <button class="btn btn-primary quiz-btn" 
+                    data-quiz-id="test-123" 
+                    data-quiz-question="What is 2 + 2?" 
+                    data-quiz-options='["3", "4", "5", "6"]'>
+                Take Test Quiz
+            </button>
+            
+            <div id="results" style="margin-top: 20px;">
+                Click the button to test the quiz modal
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="quizQuestion"></h3>
+            <form id="quizForm">
+                <input type="hidden" id="quizId">
+                <div id="quizOptions" class="quiz-options">
+                    <!-- Quiz options will be loaded here -->
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Answer</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Open quiz modal function
+        function openQuizModal(quizId, question, optionsJson) {
+            console.log('Opening quiz modal:', { quizId, question, optionsJson });
+            
+            try {
+                const options = JSON.parse(optionsJson);
+                
+                document.getElementById('quizId').value = quizId;
+                document.getElementById('quizQuestion').textContent = question;
+                
+                const optionsContainer = document.getElementById('quizOptions');
+                optionsContainer.innerHTML = options.map((option, index) => `
+                    <div class="quiz-option">
+                        <label>
+                            <input type="radio" name="quizAnswer" value="${index}">
+                            ${option}
+                        </label>
+                    </div>
+                `).join('');
+                
+                document.getElementById('quizModal').style.display = 'block';
+                document.getElementById('results').innerHTML = 'Quiz modal opened successfully!';
+            } catch (error) {
+                console.error('Error opening quiz modal:', error);
+                document.getElementById('results').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        // Setup quiz button event listeners
+        function setupQuizButtons() {
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('quiz-btn')) {
+                    console.log('Quiz button clicked');
+                    const quizId = e.target.dataset.quizId;
+                    const question = e.target.dataset.quizQuestion.replace(/&quot;/g, '"');
+                    const optionsJson = e.target.dataset.quizOptions;
+                    
+                    console.log('Quiz data:', { quizId, question, optionsJson });
+                    openQuizModal(quizId, question, optionsJson);
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Test page loaded');
+            setupQuizButtons();
+            
+            // Close modal handlers
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', (e) => {
+                    e.target.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal')) {
+                    e.target.style.display = 'none';
+                }
+            });
+            
+            // Handle form submission
+            document.getElementById('quizForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const selectedAnswer = document.querySelector('input[name="quizAnswer"]:checked');
+                if (selectedAnswer) {
+                    document.getElementById('results').innerHTML = `Selected answer: ${selectedAnswer.value}`;
+                    document.getElementById('quizModal').style.display = 'none';
+                } else {
+                    alert('Please select an answer');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

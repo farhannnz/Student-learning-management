@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLMS - Student Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header class="dashboard-header">
+            <h1>Student Dashboard</h1>
+            <div class="user-info">
+                <span id="userName">Welcome, Student</span>
+                <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            </div>
+        </header>
+
+        <nav class="dashboard-nav">
+            <button class="nav-btn active" data-section="materials">Study Materials</button>
+            <button class="nav-btn" data-section="assignments">Assignments</button>
+            <button class="nav-btn" data-section="attendance">Attendance</button>
+            <button class="nav-btn" data-section="quizzes">Quizzes</button>
+            <button class="nav-btn" data-section="notifications">Notifications</button>
+        </nav>
+
+        <main class="dashboard-content">
+            <!-- Study Materials Section -->
+            <section id="materials" class="content-section active">
+                <h2>Study Materials</h2>
+                <div id="materialsList" class="materials-grid">
+                    <!-- Materials will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Assignments Section -->
+            <section id="assignments" class="content-section">
+                <h2>Assignments</h2>
+                <div id="assignmentsList" class="assignments-grid">
+                    <!-- Assignments will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Attendance Section -->
+            <section id="attendance" class="content-section">
+                <h2>My Attendance</h2>
+                <div id="attendanceList" class="attendance-grid">
+                    <!-- Attendance records will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Quizzes Section -->
+            <section id="quizzes" class="content-section">
+                <h2>Available Quizzes</h2>
+                <div id="quizzesList" class="quizzes-grid">
+                    <!-- Quizzes will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section id="notifications" class="content-section">
+                <h2>Notifications</h2>
+                <div id="notificationsList" class="notifications-grid">
+                    <!-- Notifications will be loaded here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Assignment Submission Modal -->
+    <div id="submissionModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Submit Assignment</h3>
+            <form id="submissionForm">
+                <input type="hidden" id="assignmentId">
+                <div class="form-group">
+                    <label for="submissionFile">Upload File:</label>
+                    <input type="file" id="submissionFile" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="quizQuestion"></h3>
+            <form id="quizForm">
+                <input type="hidden" id="quizId">
+                <div id="quizOptions" class="quiz-options">
+                    <!-- Quiz options will be loaded here -->
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Answer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/student.js"></script>
+</body>
+</html>
