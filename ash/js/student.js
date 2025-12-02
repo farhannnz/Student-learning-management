@@ -319,11 +319,8 @@ async function loadQuizzes() {
     
     try {
         const { data: quizzes, error } = await supabase
-            .from('quiz_sets')
-            .select(`
-                *,
-                quiz_questions (id, question, options, correct_index)
-            `)
+            .from('quizzes')
+            .select('*')
             .order('created_at', { ascending: false });
         
         if (error) {
@@ -332,15 +329,15 @@ async function loadQuizzes() {
             return;
         }
         
-        // Get quiz attempts for current student
-        const { data: attempts } = await supabase
-            .from('quiz_attempts')
-            .select('quiz_set_id, score_percentage, completed_at')
+        // Get quiz results for current student
+        const { data: results } = await supabase
+            .from('quiz_results')
+            .select('quiz_id, is_correct, created_at')
             .eq('student_id', currentUser.id);
         
-        const attemptMap = {};
-        attempts?.forEach(attempt => {
-            attemptMap[attempt.quiz_set_id] = attempt;
+        const resultMap = {};
+        results?.forEach(result => {
+            resultMap[result.quiz_id] = result;
         });
         
         if (quizzes.length === 0) {
@@ -349,27 +346,24 @@ async function loadQuizzes() {
         }
         
         container.innerHTML = quizzes.map(quiz => {
-            const attempt = attemptMap[quiz.id];
-            const questionCount = quiz.quiz_questions?.length || 0;
+            const result = resultMap[quiz.id];
             
             return `
                 <div class="card">
-                    <h3>${quiz.title}</h3>
-                    <p>${quiz.description || 'No description available'}</p>
-                    <p><strong>Questions:</strong> ${questionCount}</p>
+                    <h3>Quiz Question</h3>
+                    <p>${quiz.question}</p>
                     <p><small>Created by teacher</small></p>
-                    ${attempt ? `
+                    ${result ? `
                         <div class="quiz-result">
-                            <p><strong>Status:</strong> Completed ✅</p>
-                            <p><strong>Score:</strong> ${attempt.score_percentage}%</p>
-                            <p><small>Completed: ${formatDate(attempt.completed_at)}</small></p>
+                            <p><strong>Status:</strong> ${result.is_correct ? '✅ Correct' : '❌ Incorrect'}</p>
+                            <p><small>Attempted: ${formatDate(result.created_at)}</small></p>
                         </div>
                     ` : `
                         <div class="card-actions">
                             <button class="btn btn-primary quiz-btn" 
                                     data-quiz-id="${quiz.id}" 
-                                    data-quiz-title="${quiz.title.replace(/"/g, '&quot;')}"
-                                    data-quiz-questions='${JSON.stringify(quiz.quiz_questions || [])}'>
+                                    data-quiz-question="${quiz.question.replace(/"/g, '&quot;')}" 
+                                    data-quiz-options='${JSON.stringify(quiz.options)}'>
                                 Take Quiz
                             </button>
                         </div>
@@ -409,10 +403,10 @@ function setupQuizButtons() {
     document.addEventListener('click', (e) => {
         if (e.target.classList.contains('quiz-btn')) {
             const quizId = e.target.dataset.quizId;
-            const quizTitle = e.target.dataset.quizTitle.replace(/&quot;/g, '"');
-            const questionsJson = e.target.dataset.quizQuestions;
+            const question = e.target.dataset.quizQuestion.replace(/&quot;/g, '"');
+            const optionsJson = e.target.dataset.quizOptions;
             
-            openMultiQuizModal(quizId, quizTitle, questionsJson);
+            openQuizModal(quizId, question, optionsJson);
         }
     });
 }
@@ -598,176 +592,5 @@ async function logout() {
         console.error('Logout error:', error);
         // Force redirect even if logout fails
         window.location.href = 'index.html';
-    }
-}
-
-// Open multi-question quiz modal
-function openMultiQuizModal(quizId, quizTitle, questionsJson) {
-    try {
-        const questions = JSON.parse(questionsJson);
-        
-        if (questions.length === 0) {
-            alert('This quiz has no questions yet.');
-            return;
-        }
-        
-        // Create quiz modal content
-        const modal = document.getElementById('quizModal');
-        const modalContent = modal.querySelector('.modal-content');
-        
-        modalContent.innerHTML = `
-            <span class="close">&times;</span>
-            <h3>${quizTitle}</h3>
-            <div id="quiz-progress">
-                <p>Question <span id="current-question">1</span> of ${questions.length}</p>
-                <div style="background: #f0f0f0; height: 8px; border-radius: 4px; margin: 10px 0;">
-                    <div id="progress-bar" style="background: #007bff; height: 100%; border-radius: 4px; width: ${100/questions.length}%;"></div>
-                </div>
-            </div>
-            <div id="quiz-content">
-                <!-- Questions will be loaded here -->
-            </div>
-            <div id="quiz-navigation" style="margin-top: 20px; text-align: center;">
-                <button id="prev-btn" class="btn btn-secondary" style="display: none;">Previous</button>
-                <button id="next-btn" class="btn btn-primary">Next</button>
-                <button id="submit-btn" class="btn btn-success" style="display: none;">Submit Quiz</button>
-            </div>
-        `;
-        
-        // Setup quiz navigation
-        let currentQuestionIndex = 0;
-        let answers = {};
-        
-        function showQuestion(index) {
-            const question = questions[index];
-            const content = document.getElementById('quiz-content');
-            
-            content.innerHTML = `
-                <div class="question-container">
-                    <h4>Question ${index + 1}:</h4>
-                    <p style="font-size: 16px; margin: 15px 0;">${question.question}</p>
-                    <div class="quiz-options">
-                        ${question.options.map((option, optIndex) => `
-                            <div class="quiz-option">
-                                <label>
-                                    <input type="radio" name="answer" value="${optIndex}" 
-                                           ${answers[question.id] == optIndex ? 'checked' : ''}>
-                                    ${option}
-                                </label>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-            
-            // Update progress
-            document.getElementById('current-question').textContent = index + 1;
-            document.getElementById('progress-bar').style.width = `${((index + 1) / questions.length) * 100}%`;
-            
-            // Update navigation buttons
-            document.getElementById('prev-btn').style.display = index > 0 ? 'inline-block' : 'none';
-            document.getElementById('next-btn').style.display = index < questions.length - 1 ? 'inline-block' : 'none';
-            document.getElementById('submit-btn').style.display = index === questions.length - 1 ? 'inline-block' : 'none';
-        }
-        
-        function saveCurrentAnswer() {
-            const selected = document.querySelector('input[name="answer"]:checked');
-            if (selected) {
-                answers[questions[currentQuestionIndex].id] = parseInt(selected.value);
-            }
-        }
-        
-        // Navigation event listeners
-        document.getElementById('prev-btn').onclick = () => {
-            saveCurrentAnswer();
-            currentQuestionIndex--;
-            showQuestion(currentQuestionIndex);
-        };
-        
-        document.getElementById('next-btn').onclick = () => {
-            saveCurrentAnswer();
-            currentQuestionIndex++;
-            showQuestion(currentQuestionIndex);
-        };
-        
-        document.getElementById('submit-btn').onclick = async () => {
-            saveCurrentAnswer();
-            
-            // Check if all questions are answered
-            if (Object.keys(answers).length < questions.length) {
-                alert('Please answer all questions before submitting.');
-                return;
-            }
-            
-            // Calculate score
-            let correctAnswers = 0;
-            questions.forEach(question => {
-                if (answers[question.id] === question.correct_index) {
-                    correctAnswers++;
-                }
-            });
-            
-            const scorePercentage = (correctAnswers / questions.length) * 100;
-            
-            try {
-                // Save quiz attempt
-                const { data: attempt, error: attemptError } = await supabase
-                    .from('quiz_attempts')
-                    .insert([{
-                        quiz_set_id: quizId,
-                        student_id: currentUser.id,
-                        total_questions: questions.length,
-                        correct_answers: correctAnswers,
-                        score_percentage: scorePercentage
-                    }])
-                    .select()
-                    .single();
-                
-                if (attemptError) {
-                    console.error('Error saving attempt:', attemptError);
-                    alert('Error saving quiz results. Please try again.');
-                    return;
-                }
-                
-                // Save individual answers
-                const answersData = questions.map(question => ({
-                    attempt_id: attempt.id,
-                    question_id: question.id,
-                    selected_index: answers[question.id],
-                    is_correct: answers[question.id] === question.correct_index
-                }));
-                
-                const { error: answersError } = await supabase
-                    .from('quiz_answers')
-                    .insert(answersData);
-                
-                if (answersError) {
-                    console.error('Error saving answers:', answersError);
-                }
-                
-                // Show results
-                alert(`Quiz completed!\\n\\nScore: ${scorePercentage.toFixed(1)}%\\nCorrect: ${correctAnswers}/${questions.length}`);
-                
-                modal.style.display = 'none';
-                loadQuizzes(); // Reload quizzes
-                
-            } catch (error) {
-                console.error('Quiz submission error:', error);
-                alert('Error submitting quiz. Please try again.');
-            }
-        };
-        
-        // Close modal handler
-        modalContent.querySelector('.close').onclick = () => {
-            modal.style.display = 'none';
-        };
-        
-        // Show first question
-        showQuestion(0);
-        modal.style.display = 'block';
-        
-    } catch (error) {
-        console.error('Error opening quiz:', error);
-        alert('Error loading quiz. Please try again.');
     }
 }

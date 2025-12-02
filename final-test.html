@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final System Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Final System Test</h1>
+    <div id="results"></div>
+    
+    <div class="test-section">
+        <h2>📋 Manual Tests</h2>
+        <ol>
+            <li><strong>Storage Buckets:</strong> Create buckets in Supabase Dashboard → Storage</li>
+            <li><strong>Teacher Login:</strong> Test teacher dashboard navigation</li>
+            <li><strong>Student Creation:</strong> Use "Create Test Student" in attendance</li>
+            <li><strong>Quiz Creation:</strong> Create multi-question quiz as teacher</li>
+            <li><strong>Student Quiz:</strong> Login as student and take quiz</li>
+            <li><strong>File Upload:</strong> Test material upload and preview</li>
+        </ol>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="js/supabase-local.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    <script src="js/teacher.js"></script>
+    <script src="js/student.js"></script>
+    
+    <script>
+        function addResult(message, type = 'success') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            addResult('🔍 Running final system tests...', 'warning');
+            
+            try {
+                // Test 1: JavaScript Files Load
+                if (typeof supabase !== 'undefined') {
+                    addResult('✅ Supabase client loaded successfully', 'success');
+                } else {
+                    addResult('❌ Supabase client failed to load', 'error');
+                    return;
+                }
+                
+                // Test 2: Teacher.js Functions
+                if (typeof loadStudyMaterials === 'function') {
+                    addResult('✅ Teacher.js functions loaded', 'success');
+                } else {
+                    addResult('❌ Teacher.js functions not loaded', 'error');
+                }
+                
+                // Test 3: Student.js Functions  
+                if (typeof openMultiQuizModal === 'function') {
+                    addResult('✅ Student.js functions loaded (including new quiz modal)', 'success');
+                } else {
+                    addResult('❌ Student.js functions not loaded', 'error');
+                }
+                
+                // Test 4: Database Connection
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('count(*)')
+                    .limit(1);
+                
+                if (error) {
+                    addResult('❌ Database connection failed: ' + error.message, 'error');
+                } else {
+                    addResult('✅ Database connection successful', 'success');
+                }
+                
+                // Test 5: Check Required Tables
+                const tables = ['profiles', 'materials', 'assignments', 'quiz_sets', 'quiz_questions'];
+                let tablesOk = 0;
+                
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('id')
+                            .limit(1);
+                        
+                        if (!error) {
+                            tablesOk++;
+                        }
+                    } catch (e) {
+                        // Table might not exist
+                    }
+                }
+                
+                if (tablesOk === tables.length) {
+                    addResult(`✅ All ${tables.length} required tables exist`, 'success');
+                } else {
+                    addResult(`⚠️ Only ${tablesOk}/${tables.length} tables exist - run database update`, 'warning');
+                }
+                
+                // Test 6: Check Storage Buckets
+                try {
+                    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+                    
+                    if (bucketError) {
+                        addResult('❌ Cannot check storage buckets: ' + bucketError.message, 'error');
+                    } else {
+                        const requiredBuckets = ['materials', 'assignments', 'submissions'];
+                        const existingBuckets = buckets.map(b => b.name);
+                        const missingBuckets = requiredBuckets.filter(b => !existingBuckets.includes(b));
+                        
+                        if (missingBuckets.length === 0) {
+                            addResult('✅ All storage buckets exist', 'success');
+                        } else {
+                            addResult(`❌ Missing storage buckets: ${missingBuckets.join(', ')} - CREATE THEM!`, 'error');
+                        }
+                    }
+                } catch (e) {
+                    addResult('⚠️ Could not check storage buckets', 'warning');
+                }
+                
+                // Test 7: Check for Students
+                const { count: studentCount } = await supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('role', 'student');
+                
+                if (studentCount > 0) {
+                    addResult(`✅ Found ${studentCount} students in system`, 'success');
+                } else {
+                    addResult('⚠️ No students found - use "Create Test Student" in attendance', 'warning');
+                }
+                
+                addResult('🎉 System test completed! Check results above.', 'success');
+                
+            } catch (error) {
+                addResult('❌ Test failed: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

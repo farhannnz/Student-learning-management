@@ -214,9 +214,6 @@ function loadSectionData(section) {
         case 'assignments':
             loadAssignments();
             break;
-        case 'students':
-            loadStudents();
-            break;
         case 'attendance':
             loadStudentsForAttendance();
             break;
@@ -258,17 +255,8 @@ function setupFormHandlers() {
     
     // Add quiz button
     document.getElementById('addQuizBtn').addEventListener('click', () => {
-        resetQuizForm();
         document.getElementById('quizModal').style.display = 'block';
     });
-    
-    // Add student button
-    const addStudentBtn = document.getElementById('addStudentBtn');
-    if (addStudentBtn) {
-        addStudentBtn.addEventListener('click', () => {
-            document.getElementById('studentModal').style.display = 'block';
-        });
-    }
     
     // Add notification button
     document.getElementById('addNotificationBtn').addEventListener('click', () => {
@@ -507,32 +495,11 @@ async function downloadAssignment(filePath, title) {
 // View assignment submissions
 async function viewSubmissions(assignmentId, assignmentTitle) {
     try {
-        // First get submissions
         const { data: submissions, error } = await supabase
             .from('submissions')
             .select('*')
             .eq('assignment_id', assignmentId)
             .order('submitted_at', { ascending: false });
-            
-        if (error) {
-            console.error('Error loading submissions:', error);
-            alert('Error loading submissions. Please try again.');
-            return;
-        }
-        
-        // Then get student profiles separately
-        let studentsMap = {};
-        if (submissions.length > 0) {
-            const studentIds = submissions.map(s => s.student_id);
-            const { data: students } = await supabase
-                .from('profiles')
-                .select('id, full_name, roll_number')
-                .in('id', studentIds);
-                
-            students?.forEach(student => {
-                studentsMap[student.id] = student;
-            });
-        }
         
         if (error) {
             console.error('Error loading submissions:', error);
@@ -548,24 +515,17 @@ async function viewSubmissions(assignmentId, assignmentTitle) {
             submissionsContainer.innerHTML = `
                 <h4>Submissions for: ${assignmentTitle}</h4>
                 <div class="submissions-grid">
-                    ${submissions.map(submission => {
-                        const student = studentsMap[submission.student_id] || {};
-                        return `
-                            <div class="card">
-                                <h4>${student.full_name || 'Unknown Student'}</h4>
-                                <p><strong>Roll Number:</strong> ${student.roll_number || 'N/A'}</p>
-                                <p><strong>Submitted:</strong> ${formatDate(submission.submitted_at)}</p>
-                                <div class="card-actions">
-                                    <button class="btn btn-primary" onclick="previewSubmission('${submission.file_path}', '${student.full_name || 'Student'}')">
-                                        Preview File
-                                    </button>
-                                    <button class="btn btn-secondary" onclick="downloadSubmission('${submission.file_path}', '${student.roll_number || 'submission'}')">
-                                        Download
-                                    </button>
-                                </div>
+                    ${submissions.map(submission => `
+                        <div class="card">
+                            <h4>Student Submission</h4>
+                            <p><strong>Submitted:</strong> ${formatDate(submission.submitted_at)}</p>
+                            <div class="card-actions">
+                                <button class="btn btn-primary" onclick="downloadSubmission('${submission.file_path}', 'submission')">
+                                    Download Submission
+                                </button>
                             </div>
-                        `;
-                    }).join('')}
+                        </div>
+                    `).join('')}
                 </div>
             `;
         }
@@ -628,50 +588,25 @@ async function loadStudentsForAttendance() {
     container.innerHTML = '<div class="loading">Loading students...</div>';
     
     try {
-        console.log('Loading students for attendance, date:', selectedDate);
-        
-        // First check if any students exist at all
-        const { count: totalStudents } = await supabase
-            .from('profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('role', 'student');
-            
-        console.log('Total students in database:', totalStudents);
-        
         // Get all students
         const { data: students, error: studentsError } = await supabase
             .from('profiles')
-            .select('id, full_name, roll_number')
+            .select('id, full_name')
             .eq('role', 'student')
             .order('full_name');
         
-        console.log('Students query result:', { students, studentsError });
-        console.log('Students array length:', students?.length || 0);
-        
         if (studentsError) {
             console.error('Error loading students:', studentsError);
-            container.innerHTML = '<div class="empty-state"><h3>Error loading students</h3><p>Error: ' + studentsError.message + '</p></div>';
+            container.innerHTML = '<div class="empty-state"><h3>Error loading students</h3></div>';
             return;
         }
         
         // Get existing attendance for selected date
-        console.log('Current user for attendance query:', currentUser?.id);
-        
-        let attendance = [];
-        let attendanceError = null;
-        
-        if (currentUser?.id) {
-            const result = await supabase
-                .from('attendance')
-                .select('student_id, status')
-                .eq('date', selectedDate)
-                .eq('teacher_id', currentUser.id);
-            
-            attendance = result.data;
-            attendanceError = result.error;
-        } else {
-            console.log('No current user - skipping attendance query');
-        }
+        const { data: attendance, error: attendanceError } = await supabase
+            .from('attendance')
+            .select('student_id, status')
+            .eq('date', selectedDate)
+            .eq('teacher_id', currentUser.id);
         
         if (attendanceError) {
             console.error('Error loading attendance:', attendanceError);
@@ -683,42 +618,17 @@ async function loadStudentsForAttendance() {
         });
         
         if (students.length === 0) {
-            console.log('No students found - showing empty state');
-            container.innerHTML = `
-                <div class="empty-state">
-                    <h3>No students found</h3>
-                    <p>No students are registered in the system.</p>
-                    <div style="margin: 20px 0;">
-                        <button onclick="createQuickStudent()" class="btn btn-primary" style="margin: 5px;">
-                            Create Test Student
-                        </button>
-                        <button onclick="window.open('signup.html', '_blank')" class="btn btn-secondary" style="margin: 5px;">
-                            Open Signup Page
-                        </button>
-                    </div>
-                    <p><strong>To add students:</strong></p>
-                    <ol>
-                        <li>Go to "Students" tab and click "Add Student"</li>
-                        <li>Or use "Create Test Student" button above</li>
-                        <li>Or students can register using signup page</li>
-                    </ol>
-                </div>
-            `;
+            container.innerHTML = '<div class="empty-state"><h3>No students found</h3><p>No students are registered in the system.</p></div>';
             return;
         }
         
-        console.log('Students found, creating display for', students.length, 'students');
-        console.log('Students data:', students);
-        
-        const studentsHTML = students.map(student => {
+        container.innerHTML = students.map(student => {
             const currentStatus = attendanceMap[student.id] || '';
-            console.log('Processing student:', student.full_name, 'Roll:', student.roll_number);
             
             return `
                 <div class="card student-card">
                     <div class="student-info">
                         <h4>${student.full_name}</h4>
-                        <p><strong>Roll No:</strong> ${student.roll_number || 'Not assigned'}</p>
                         ${currentStatus ? `<div class="attendance-status ${currentStatus}">${currentStatus.toUpperCase()}</div>` : ''}
                     </div>
                     <div class="attendance-controls">
@@ -734,10 +644,6 @@ async function loadStudentsForAttendance() {
                 </div>
             `;
         }).join('');
-        
-        console.log('Generated HTML length:', studentsHTML.length);
-        container.innerHTML = studentsHTML;
-        console.log('Students display updated in container');
         
     } catch (error) {
         console.error('Error loading students:', error);
@@ -783,11 +689,8 @@ async function loadQuizzes() {
     
     try {
         const { data: quizzes, error } = await supabase
-            .from('quiz_sets')
-            .select(`
-                *,
-                quiz_questions (id)
-            `)
+            .from('quizzes')
+            .select('*')
             .eq('teacher_id', currentUser.id)
             .order('created_at', { ascending: false });
             
@@ -804,48 +707,46 @@ async function loadQuizzes() {
             return;
         }
         
-        // Get quiz attempts separately
+        // Get quiz results separately
         const quizIds = quizzes.map(q => q.id);
         let quizStats = {};
         
         if (quizIds.length > 0) {
-            const { data: attempts } = await supabase
-                .from('quiz_attempts')
-                .select('quiz_set_id, score_percentage')
-                .in('quiz_set_id', quizIds);
+            const { data: results } = await supabase
+                .from('quiz_results')
+                .select('quiz_id, is_correct')
+                .in('quiz_id', quizIds);
                 
-            attempts?.forEach(attempt => {
-                if (!quizStats[attempt.quiz_set_id]) {
-                    quizStats[attempt.quiz_set_id] = { total: 0, avgScore: 0 };
+            results?.forEach(result => {
+                if (!quizStats[result.quiz_id]) {
+                    quizStats[result.quiz_id] = { total: 0, correct: 0 };
                 }
-                quizStats[attempt.quiz_set_id].total++;
-                quizStats[attempt.quiz_set_id].avgScore += attempt.score_percentage;
-            });
-            
-            // Calculate average scores
-            Object.keys(quizStats).forEach(quizId => {
-                if (quizStats[quizId].total > 0) {
-                    quizStats[quizId].avgScore = (quizStats[quizId].avgScore / quizStats[quizId].total).toFixed(1);
+                quizStats[result.quiz_id].total++;
+                if (result.is_correct) {
+                    quizStats[result.quiz_id].correct++;
                 }
             });
         }
         
         container.innerHTML = quizzes.map(quiz => {
-            const stats = quizStats[quiz.id] || { total: 0, avgScore: 0 };
-            const questionCount = quiz.quiz_questions?.length || 0;
+            const stats = quizStats[quiz.id] || { total: 0, correct: 0 };
+            const totalAttempts = stats.total;
+            const correctAttempts = stats.correct;
             
             return `
                 <div class="card">
-                    <h3>${quiz.title}</h3>
-                    <p>${quiz.description || 'No description available'}</p>
-                    <p><strong>Questions:</strong> ${questionCount}</p>
-                    <p><strong>Attempts:</strong> ${stats.total}</p>
-                    <p><strong>Average Score:</strong> ${stats.avgScore}%</p>
+                    <h3>Quiz Question</h3>
+                    <p>${quiz.question}</p>
+                    <p><strong>Options:</strong></p>
+                    <ul>
+                        ${quiz.options.map((option, index) => `
+                            <li>${option} ${index === quiz.correct_index ? '✅' : ''}</li>
+                        `).join('')}
+                    </ul>
+                    <p><strong>Attempts:</strong> ${totalAttempts}</p>
+                    <p><strong>Correct Answers:</strong> ${correctAttempts}</p>
                     <p><small>Created: ${formatDate(quiz.created_at)}</small></p>
                     <div class="card-actions">
-                        <button class="btn btn-primary" onclick="viewQuizResults('${quiz.id}', '${quiz.title}')">
-                            View Results
-                        </button>
                         <button class="btn btn-danger" onclick="deleteQuiz('${quiz.id}')">
                             Delete
                         </button>
@@ -1130,564 +1031,4 @@ function setupModals() {
             e.target.style.display = 'none';
         }
     });
-}// Load
- students
-async function loadStudents() {
-    const container = document.getElementById('studentsList');
-    container.innerHTML = '<div class="loading">Loading students...</div>';
-    
-    try {
-        const { data: students, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('role', 'student')
-            .order('roll_number');
-            
-        console.log('Students query result:', { students, error });
-        
-        if (error) {
-            console.error('Error loading students:', error);
-            container.innerHTML = '<div class="empty-state"><h3>Error loading students</h3></div>';
-            return;
-        }
-        
-        if (students.length === 0) {
-            container.innerHTML = '<div class="empty-state"><h3>No students found</h3><p>Click "Add Student" to add students to the system.</p></div>';
-            return;
-        }
-        
-        container.innerHTML = students.map(student => `
-            <div class="card">
-                <h3>${student.full_name}</h3>
-                <p><strong>Roll Number:</strong> ${student.roll_number || 'Not assigned'}</p>
-                <p><small>Joined: ${formatDate(student.created_at)}</small></p>
-                <div class="card-actions">
-                    <button class="btn btn-danger" onclick="deleteStudent('${student.id}')">
-                        Remove
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-    } catch (error) {
-        console.error('Error loading students:', error);
-        container.innerHTML = '<div class="empty-state"><h3>Error loading students</h3></div>';
-    }
-}
-
-// Delete student
-async function deleteStudent(studentId) {
-    if (!confirm('Are you sure you want to remove this student? This will delete all their data.')) {
-        return;
-    }
-    
-    try {
-        const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', studentId);
-        
-        if (error) {
-            console.error('Error deleting student:', error);
-            alert('Error removing student. Please try again.');
-            return;
-        }
-        
-        alert('Student removed successfully!');
-        loadStudents(); // Reload students
-        
-    } catch (error) {
-        console.error('Delete error:', error);
-        alert('Error removing student. Please try again.');
-    }
-}
-
-// Reset quiz form
-function resetQuizForm() {
-    document.getElementById('quizTitle').value = '';
-    document.getElementById('quizDescription').value = '';
-    
-    // Reset to single question
-    const container = document.getElementById('questionsContainer');
-    container.innerHTML = `
-        <h4>Questions:</h4>
-        <div class="question-item" data-question="1">
-            <div class="form-group">
-                <label>Question 1:</label>
-                <textarea class="question-text" required placeholder="Enter your question"></textarea>
-            </div>
-            <div class="form-group">
-                <label>Option 1:</label>
-                <input type="text" class="option" required placeholder="Option A">
-            </div>
-            <div class="form-group">
-                <label>Option 2:</label>
-                <input type="text" class="option" required placeholder="Option B">
-            </div>
-            <div class="form-group">
-                <label>Option 3:</label>
-                <input type="text" class="option" required placeholder="Option C">
-            </div>
-            <div class="form-group">
-                <label>Option 4:</label>
-                <input type="text" class="option" required placeholder="Option D">
-            </div>
-            <div class="form-group">
-                <label>Correct Answer:</label>
-                <select class="correct-answer" required>
-                    <option value="">Select Correct Answer</option>
-                    <option value="0">Option 1</option>
-                    <option value="1">Option 2</option>
-                    <option value="2">Option 3</option>
-                    <option value="3">Option 4</option>
-                </select>
-            </div>
-        </div>
-    `;
-}
-
-// Add question to quiz
-function addQuestion() {
-    const container = document.getElementById('questionsContainer');
-    const questionCount = container.querySelectorAll('.question-item').length + 1;
-    
-    const questionHTML = `
-        <div class="question-item" data-question="${questionCount}">
-            <div class="form-group">
-                <label>Question ${questionCount}:</label>
-                <textarea class="question-text" required placeholder="Enter your question"></textarea>
-            </div>
-            <div class="form-group">
-                <label>Option 1:</label>
-                <input type="text" class="option" required placeholder="Option A">
-            </div>
-            <div class="form-group">
-                <label>Option 2:</label>
-                <input type="text" class="option" required placeholder="Option B">
-            </div>
-            <div class="form-group">
-                <label>Option 3:</label>
-                <input type="text" class="option" required placeholder="Option C">
-            </div>
-            <div class="form-group">
-                <label>Option 4:</label>
-                <input type="text" class="option" required placeholder="Option D">
-            </div>
-            <div class="form-group">
-                <label>Correct Answer:</label>
-                <select class="correct-answer" required>
-                    <option value="">Select Correct Answer</option>
-                    <option value="0">Option 1</option>
-                    <option value="1">Option 2</option>
-                    <option value="2">Option 3</option>
-                    <option value="3">Option 4</option>
-                </select>
-            </div>
-            <button type="button" class="btn btn-danger remove-question" onclick="removeQuestion(this)">Remove Question</button>
-        </div>
-    `;
-    
-    container.insertAdjacentHTML('beforeend', questionHTML);
-}
-
-// Remove question from quiz
-function removeQuestion(button) {
-    const questionItem = button.closest('.question-item');
-    questionItem.remove();
-    
-    // Renumber questions
-    const questions = document.querySelectorAll('.question-item');
-    questions.forEach((question, index) => {
-        const questionNum = index + 1;
-        question.dataset.question = questionNum;
-        question.querySelector('label').textContent = `Question ${questionNum}:`;
-    });
-}
-
-// Update setupModals function to include new forms
-function setupNewModals() {
-    // Add question button handler
-    const addQuestionBtn = document.getElementById('addQuestionBtn');
-    if (addQuestionBtn) {
-        addQuestionBtn.addEventListener('click', addQuestion);
-    }
-    
-    // Student form handler
-    const studentForm = document.getElementById('studentForm');
-    if (studentForm) {
-        studentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('studentName').value;
-            const rollNumber = document.getElementById('studentRoll').value;
-            const email = document.getElementById('studentEmail').value;
-            const password = document.getElementById('studentPassword').value;
-            
-            try {
-                // Create user account
-                const { data, error } = await supabase.auth.admin.createUser({
-                    email: email,
-                    password: password,
-                    email_confirm: true
-                });
-                
-                if (error) {
-                    console.error('Error creating user:', error);
-                    alert('Error creating student account. Please try again.');
-                    return;
-                }
-                
-                // Create profile
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert([{
-                        id: data.user.id,
-                        full_name: name,
-                        roll_number: rollNumber,
-                        role: 'student'
-                    }]);
-                
-                if (profileError) {
-                    console.error('Error creating profile:', profileError);
-                    alert('Account created but profile setup failed. Please contact administrator.');
-                    return;
-                }
-                
-                alert('Student added successfully!');
-                document.getElementById('studentModal').style.display = 'none';
-                studentForm.reset();
-                loadStudents();
-                
-            } catch (error) {
-                console.error('Student creation error:', error);
-                alert('Error adding student. Please try again.');
-            }
-        });
-    }
-    
-    // Updated quiz form handler for multiple questions
-    const quizForm = document.getElementById('quizForm');
-    if (quizForm) {
-        quizForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const title = document.getElementById('quizTitle').value;
-            const description = document.getElementById('quizDescription').value;
-            
-            // Collect all questions
-            const questionItems = document.querySelectorAll('.question-item');
-            const questions = [];
-            
-            questionItems.forEach((item, index) => {
-                const questionText = item.querySelector('.question-text').value;
-                const options = Array.from(item.querySelectorAll('.option')).map(input => input.value);
-                const correctIndex = parseInt(item.querySelector('.correct-answer').value);
-                
-                questions.push({
-                    question: questionText,
-                    options: options,
-                    correct_index: correctIndex
-                });
-            });
-            
-            if (questions.length === 0) {
-                alert('Please add at least one question.');
-                return;
-            }
-            
-            try {
-                // Create quiz set
-                const { data: quizSet, error: quizError } = await supabase
-                    .from('quiz_sets')
-                    .insert([{
-                        title: title,
-                        description: description,
-                        teacher_id: currentUser.id
-                    }])
-                    .select()
-                    .single();
-                
-                if (quizError) {
-                    console.error('Error creating quiz set:', quizError);
-                    alert('Error creating quiz. Please try again.');
-                    return;
-                }
-                
-                // Add questions
-                const questionsData = questions.map(q => ({
-                    quiz_set_id: quizSet.id,
-                    question: q.question,
-                    options: q.options,
-                    correct_index: q.correct_index
-                }));
-                
-                const { error: questionsError } = await supabase
-                    .from('quiz_questions')
-                    .insert(questionsData);
-                
-                if (questionsError) {
-                    console.error('Error adding questions:', questionsError);
-                    alert('Quiz created but questions failed to save. Please try again.');
-                    return;
-                }
-                
-                alert('Quiz created successfully!');
-                document.getElementById('quizModal').style.display = 'none';
-                quizForm.reset();
-                resetQuizForm();
-                loadQuizzes();
-                
-            } catch (error) {
-                console.error('Quiz creation error:', error);
-                alert('Error creating quiz. Please try again.');
-            }
-        });
-    }
-}
-
-// Call the new setup function
-document.addEventListener('DOMContentLoaded', () => {
-    setupNewModals();
-});
-
-// View quiz results with rankings
-async function viewQuizResults(quizSetId, quizTitle) {
-    try {
-        // Get quiz attempts
-        const { data: attempts, error } = await supabase
-            .from('quiz_attempts')
-            .select('*')
-            .eq('quiz_set_id', quizSetId)
-            .order('score_percentage', { ascending: false });
-            
-        if (error) {
-            console.error('Error loading quiz attempts:', error);
-            alert('Error loading quiz results. Please try again.');
-            return;
-        }
-        
-        // Get student profiles separately
-        let studentsMap = {};
-        if (attempts.length > 0) {
-            const studentIds = attempts.map(a => a.student_id);
-            const { data: students } = await supabase
-                .from('profiles')
-                .select('id, full_name, roll_number')
-                .in('id', studentIds);
-                
-            students?.forEach(student => {
-                studentsMap[student.id] = student;
-            });
-        }
-        
-        if (error) {
-            console.error('Error loading quiz results:', error);
-            alert('Error loading quiz results. Please try again.');
-            return;
-        }
-        
-        const submissionsContainer = document.getElementById('submissionsList');
-        
-        if (attempts.length === 0) {
-            submissionsContainer.innerHTML = '<div class="empty-state"><h3>No attempts yet</h3><p>Students haven\'t taken this quiz yet.</p></div>';
-        } else {
-            submissionsContainer.innerHTML = `
-                <h4>Results for: ${quizTitle}</h4>
-                <div class="quiz-results-table">
-                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                        <thead>
-                            <tr style="background: #f8f9fa;">
-                                <th style="padding: 12px; border: 1px solid #ddd;">Rank</th>
-                                <th style="padding: 12px; border: 1px solid #ddd;">Roll No.</th>
-                                <th style="padding: 12px; border: 1px solid #ddd;">Name</th>
-                                <th style="padding: 12px; border: 1px solid #ddd;">Score</th>
-                                <th style="padding: 12px; border: 1px solid #ddd;">Correct/Total</th>
-                                <th style="padding: 12px; border: 1px solid #ddd;">Date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${attempts.map((attempt, index) => {
-                                const rank = index + 1;
-                                const scoreColor = attempt.score_percentage >= 80 ? '#27ae60' : 
-                                                 attempt.score_percentage >= 60 ? '#f39c12' : '#e74c3c';
-                                
-                                return `
-                                    <tr>
-                                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-                                            ${rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
-                                        </td>
-                                        <td style="padding: 12px; border: 1px solid #ddd;">${studentsMap[attempt.student_id]?.roll_number || 'N/A'}</td>
-                                        <td style="padding: 12px; border: 1px solid #ddd;">${studentsMap[attempt.student_id]?.full_name || 'Unknown'}</td>
-                                        <td style="padding: 12px; border: 1px solid #ddd; color: ${scoreColor}; font-weight: bold;">
-                                            ${attempt.score_percentage}%
-                                        </td>
-                                        <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-                                            ${attempt.correct_answers}/${attempt.total_questions}
-                                        </td>
-                                        <td style="padding: 12px; border: 1px solid #ddd;">${formatDate(attempt.completed_at)}</td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-        
-        document.getElementById('submissionsModal').style.display = 'block';
-        
-    } catch (error) {
-        console.error('Error viewing quiz results:', error);
-        alert('Error viewing quiz results. Please try again.');
-    }
-}
-
-// Preview submission file
-async function previewSubmission(filePath, studentName) {
-    try {
-        const { data } = supabase.storage
-            .from(STORAGE_BUCKETS.SUBMISSIONS)
-            .getPublicUrl(filePath);
-        
-        if (data.publicUrl) {
-            // Create preview modal
-            const previewModal = document.createElement('div');
-            previewModal.className = 'modal';
-            previewModal.style.display = 'block';
-            previewModal.innerHTML = `
-                <div class="modal-content large">
-                    <span class="close" onclick="this.closest('.modal').remove()">&times;</span>
-                    <h3>Submission Preview - ${studentName}</h3>
-                    <div style="text-align: center; padding: 20px;">
-                        <iframe src="${data.publicUrl}" 
-                                style="width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 8px;"
-                                frameborder="0">
-                        </iframe>
-                        <p style="margin-top: 10px;">
-                            <a href="${data.publicUrl}" target="_blank" class="btn btn-primary">
-                                Open in New Tab
-                            </a>
-                        </p>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(previewModal);
-            
-            // Close modal when clicking outside
-            previewModal.addEventListener('click', (e) => {
-                if (e.target === previewModal) {
-                    previewModal.remove();
-                }
-            });
-        } else {
-            alert('Unable to preview file. Please try downloading instead.');
-        }
-    } catch (error) {
-        console.error('Preview error:', error);
-        alert('Error previewing file. Please try again.');
-    }
-}
-
-// Debug function to check database status
-async function debugDatabase() {
-    console.log('=== DATABASE DEBUG ===');
-    
-    try {
-        // Check if user is authenticated
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        console.log('Auth User:', user);
-        console.log('Auth Error:', authError);
-        
-        if (user) {
-            // Check profile
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-            console.log('Profile:', profile);
-            console.log('Profile Error:', profileError);
-            
-            // Check materials count
-            const { data: materials, error: materialsError } = await supabase
-                .from('materials')
-                .select('id')
-                .limit(5);
-            console.log('Materials Sample:', materials);
-            console.log('Materials Error:', materialsError);
-            
-            // Check assignments count
-            const { data: assignments, error: assignmentsError } = await supabase
-                .from('assignments')
-                .select('id')
-                .limit(5);
-            console.log('Assignments Sample:', assignments);
-            console.log('Assignments Error:', assignmentsError);
-            
-            // Check new quiz tables
-            const { data: quizSets, error: quizError } = await supabase
-                .from('quiz_sets')
-                .select('id')
-                .limit(5);
-            console.log('Quiz Sets Sample:', quizSets);
-            console.log('Quiz Sets Error:', quizError);
-        }
-    } catch (error) {
-        console.error('Debug Error:', error);
-    }
-    
-    console.log('=== END DEBUG ===');
-}
-
-// Auto-run debug on page load
-window.addEventListener('load', () => {
-    setTimeout(debugDatabase, 2000); // Run after 2 seconds
-});
-
-// Quick function to create test student
-async function createQuickStudent() {
-    try {
-        const randomNum = Math.floor(Math.random() * 1000);
-        const email = `student${randomNum}@test.com`;
-        const password = 'student123';
-        const name = `Test Student ${randomNum}`;
-        const rollNumber = `2024${randomNum.toString().padStart(3, '0')}`;
-        
-        // Create user account
-        const { data, error } = await supabase.auth.signUp({
-            email: email,
-            password: password
-        });
-        
-        if (error) {
-            alert('Error creating student: ' + error.message);
-            return;
-        }
-        
-        if (data.user) {
-            // Create profile
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .insert([{
-                    id: data.user.id,
-                    full_name: name,
-                    roll_number: rollNumber,
-                    role: 'student'
-                }]);
-            
-            if (profileError) {
-                alert('Error creating profile: ' + profileError.message);
-                return;
-            }
-            
-            alert(`✅ Created student: ${name} (Roll: ${rollNumber})\nEmail: ${email}\nPassword: ${password}`);
-            
-            // Reload attendance
-            loadStudentsForAttendance();
-        }
-        
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
 }

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix CDN Issue</title>
+</head>
+<body>
+    <h2>CDN Fix Instructions</h2>
+    
+    <h3>Option 1: Disable Tracking Prevention (Quick Fix)</h3>
+    <ol>
+        <li>In Edge browser, click the shield icon in address bar</li>
+        <li>Turn OFF "Tracking prevention" for this site</li>
+        <li>Refresh the page</li>
+    </ol>
+    
+    <h3>Option 2: Use Local Supabase (Permanent Fix)</h3>
+    <p>Download Supabase JS file locally:</p>
+    <ol>
+        <li>Go to: <a href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" target="_blank">Download Supabase</a></li>
+        <li>Save as "js/supabase.js"</li>
+        <li>Update HTML files to use local file</li>
+    </ol>
+    
+    <h3>Option 3: Use Different Browser</h3>
+    <ul>
+        <li>Try Chrome or Firefox</li>
+        <li>These browsers don't block CDN by default</li>
+    </ul>
+
+    <script>
+        // Test if Supabase CDN is accessible
+        fetch('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js')
+            .then(response => {
+                if (response.ok) {
+                    document.body.innerHTML += '<p style="color: green;">✅ CDN is accessible</p>';
+                } else {
+                    document.body.innerHTML += '<p style="color: red;">❌ CDN is blocked</p>';
+                }
+            })
+            .catch(error => {
+                document.body.innerHTML += '<p style="color: red;">❌ CDN is blocked: ' + error.message + '</p>';
+            });
+    </script>
+</body>
+</html>

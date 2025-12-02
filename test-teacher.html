@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Teacher Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h2>Teacher Dashboard Test</h2>
+            <div id="status">Loading...</div>
+            <div id="debug-info" style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="js/supabase-local.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const status = document.getElementById('status');
+            const debugInfo = document.getElementById('debug-info');
+            
+            function log(message) {
+                console.log(message);
+                debugInfo.innerHTML += message + '<br>';
+            }
+            
+            try {
+                log('✅ Starting tests...');
+                
+                // Test 1: Supabase client
+                if (typeof supabase !== 'undefined') {
+                    log('✅ Supabase client loaded');
+                } else {
+                    log('❌ Supabase client not loaded');
+                    return;
+                }
+                
+                // Test 2: Database connection
+                log('🔍 Testing database connection...');
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('count(*)')
+                    .limit(1);
+                
+                if (error) {
+                    log('❌ Database error: ' + error.message);
+                } else {
+                    log('✅ Database connection successful');
+                }
+                
+                // Test 3: Check tables
+                log('🔍 Checking tables...');
+                const tables = ['profiles', 'materials', 'assignments', 'quiz_sets'];
+                
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('id')
+                            .limit(1);
+                        
+                        if (error) {
+                            log(`❌ Table ${table}: ${error.message}`);
+                        } else {
+                            log(`✅ Table ${table}: OK`);
+                        }
+                    } catch (e) {
+                        log(`❌ Table ${table}: ${e.message}`);
+                    }
+                }
+                
+                // Test 4: Authentication
+                log('🔍 Testing authentication...');
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                
+                if (authError) {
+                    log('❌ Auth error: ' + authError.message);
+                } else if (user) {
+                    log('✅ User logged in: ' + user.email);
+                    
+                    // Get profile
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (profileError) {
+                        log('❌ Profile error: ' + profileError.message);
+                    } else {
+                        log('✅ Profile loaded: ' + profile.full_name + ' (' + profile.role + ')');
+                        if (profile.roll_number) {
+                            log('✅ Roll number: ' + profile.roll_number);
+                        }
+                    }
+                } else {
+                    log('⚠️ No user logged in');
+                }
+                
+                status.innerHTML = '✅ Tests completed! Check debug info below.';
+                status.style.color = 'green';
+                
+            } catch (error) {
+                log('❌ Test failed: ' + error.message);
+                status.innerHTML = '❌ Tests failed! Check debug info below.';
+                status.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>

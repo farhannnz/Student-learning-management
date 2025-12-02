@@ -19,7 +19,6 @@
         <nav class="dashboard-nav">
             <button class="nav-btn active" data-section="materials">Study Materials</button>
             <button class="nav-btn" data-section="assignments">Assignments</button>
-            <button class="nav-btn" data-section="students">Students</button>
             <button class="nav-btn" data-section="attendance">Attendance</button>
             <button class="nav-btn" data-section="quizzes">Quizzes</button>
             <button class="nav-btn" data-section="notifications">Notifications</button>
@@ -48,27 +47,11 @@
                 </div>
             </section>
 
-            <!-- Students Section -->
-            <section id="students" class="content-section">
-                <div class="section-header">
-                    <h2>Students Management</h2>
-                    <button id="addStudentBtn" class="btn btn-primary">Add Student</button>
-                </div>
-                <div id="studentsList" class="students-grid">
-                    <!-- Students will be loaded here -->
-                </div>
-            </section>
-
             <!-- Attendance Section -->
             <section id="attendance" class="content-section">
                 <div class="section-header">
                     <h2>Mark Attendance</h2>
-                    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-                        <input type="date" id="attendanceDate" class="form-control">
-                        <a href="attendance.html" class="btn btn-primary" style="text-decoration: none; white-space: nowrap;">
-                            📋 Open Full Attendance Page
-                        </a>
-                    </div>
+                    <input type="date" id="attendanceDate" class="form-control">
                 </div>
                 <div id="studentsList" class="students-grid">
                     <!-- Students will be loaded here -->
@@ -151,86 +134,41 @@
 
     <!-- Add Quiz Modal -->
     <div id="quizModal" class="modal">
-        <div class="modal-content large">
+        <div class="modal-content">
             <span class="close">&times;</span>
             <h3>Create Quiz</h3>
             <form id="quizForm">
                 <div class="form-group">
-                    <label for="quizTitle">Quiz Title:</label>
-                    <input type="text" id="quizTitle" required placeholder="e.g., Math Chapter 1 Quiz">
+                    <label for="quizQuestion">Question:</label>
+                    <textarea id="quizQuestion" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="quizDescription">Description:</label>
-                    <textarea id="quizDescription" placeholder="Brief description of the quiz"></textarea>
-                </div>
-                
-                <div id="questionsContainer">
-                    <h4>Questions:</h4>
-                    <div class="question-item" data-question="1">
-                        <div class="form-group">
-                            <label>Question 1:</label>
-                            <textarea class="question-text" required placeholder="Enter your question"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Option 1:</label>
-                            <input type="text" class="option" required placeholder="Option A">
-                        </div>
-                        <div class="form-group">
-                            <label>Option 2:</label>
-                            <input type="text" class="option" required placeholder="Option B">
-                        </div>
-                        <div class="form-group">
-                            <label>Option 3:</label>
-                            <input type="text" class="option" required placeholder="Option C">
-                        </div>
-                        <div class="form-group">
-                            <label>Option 4:</label>
-                            <input type="text" class="option" required placeholder="Option D">
-                        </div>
-                        <div class="form-group">
-                            <label>Correct Answer:</label>
-                            <select class="correct-answer" required>
-                                <option value="">Select Correct Answer</option>
-                                <option value="0">Option 1</option>
-                                <option value="1">Option 2</option>
-                                <option value="2">Option 3</option>
-                                <option value="3">Option 4</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="quiz-actions">
-                    <button type="button" id="addQuestionBtn" class="btn btn-secondary">Add Another Question</button>
-                    <button type="submit" class="btn btn-primary">Create Quiz</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Add Student Modal -->
-    <div id="studentModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Add Student</h3>
-            <form id="studentForm">
-                <div class="form-group">
-                    <label for="studentName">Full Name:</label>
-                    <input type="text" id="studentName" required>
+                    <label for="option1">Option 1:</label>
+                    <input type="text" id="option1" required>
                 </div>
                 <div class="form-group">
-                    <label for="studentRoll">Roll Number:</label>
-                    <input type="text" id="studentRoll" required>
+                    <label for="option2">Option 2:</label>
+                    <input type="text" id="option2" required>
                 </div>
                 <div class="form-group">
-                    <label for="studentEmail">Email:</label>
-                    <input type="email" id="studentEmail" required>
+                    <label for="option3">Option 3:</label>
+                    <input type="text" id="option3" required>
                 </div>
                 <div class="form-group">
-                    <label for="studentPassword">Password:</label>
-                    <input type="password" id="studentPassword" required minlength="6">
+                    <label for="option4">Option 4:</label>
+                    <input type="text" id="option4" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Add Student</button>
+                <div class="form-group">
+                    <label for="correctAnswer">Correct Answer (1-4):</label>
+                    <select id="correctAnswer" required>
+                        <option value="">Select Correct Answer</option>
+                        <option value="0">Option 1</option>
+                        <option value="1">Option 2</option>
+                        <option value="2">Option 3</option>
+                        <option value="3">Option 4</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Quiz</button>
             </form>
         </div>
     </div>
@@ -274,7 +212,7 @@
     </div>
 
     <!-- Supabase JS -->
-    <script src="js/supabase-local.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabaseClient.js"></script>
     <script src="js/teacher.js"></script>
 </body>

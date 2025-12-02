@@ -60,24 +60,6 @@ if (loginForm) {
     });
 }
 
-// Role change handler to show/hide roll number field
-const roleSelect = document.getElementById('role');
-if (roleSelect) {
-    roleSelect.addEventListener('change', (e) => {
-        const rollNumberGroup = document.getElementById('rollNumberGroup');
-        const rollNumberInput = document.getElementById('rollNumber');
-        
-        if (e.target.value === 'student') {
-            rollNumberGroup.style.display = 'block';
-            rollNumberInput.required = true;
-        } else {
-            rollNumberGroup.style.display = 'none';
-            rollNumberInput.required = false;
-            rollNumberInput.value = '';
-        }
-    });
-}
-
 // Signup Form Handler
 const signupForm = document.getElementById('signupForm');
 if (signupForm) {
@@ -88,7 +70,6 @@ if (signupForm) {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const role = document.getElementById('role').value;
-        const rollNumber = document.getElementById('rollNumber').value;
         
         try {
             // Sign up with Supabase
@@ -104,20 +85,15 @@ if (signupForm) {
             
             if (data.user) {
                 // Create profile record
-                const profileData = {
-                    id: data.user.id,
-                    full_name: fullName,
-                    role: role
-                };
-                
-                // Add roll number if student
-                if (role === 'student' && rollNumber) {
-                    profileData.roll_number = rollNumber;
-                }
-                
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .insert([profileData]);
+                    .insert([
+                        {
+                            id: data.user.id,
+                            full_name: fullName,
+                            role: role
+                        }
+                    ]);
                 
                 if (profileError) {
                     console.error('Profile creation error:', profileError);

@@ -2,7 +2,6 @@
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID REFERENCES auth.users(id) PRIMARY KEY,
     full_name TEXT NOT NULL,
-    roll_number TEXT,
     role TEXT NOT NULL CHECK (role IN ('student', 'teacher')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -48,45 +47,25 @@ CREATE TABLE IF NOT EXISTS attendance (
     UNIQUE(student_id, date)
 );
 
--- Create quiz_sets table (for quiz titles)
-CREATE TABLE IF NOT EXISTS quiz_sets (
+-- Create quizzes table
+CREATE TABLE IF NOT EXISTS quizzes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    title TEXT NOT NULL,
-    description TEXT,
+    question TEXT NOT NULL,
+    options JSONB NOT NULL,
+    correct_index INTEGER NOT NULL,
     teacher_id UUID REFERENCES auth.users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create quiz_questions table (multiple questions per quiz)
-CREATE TABLE IF NOT EXISTS quiz_questions (
+-- Create quiz_results table
+CREATE TABLE IF NOT EXISTS quiz_results (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    quiz_set_id UUID REFERENCES quiz_sets(id) ON DELETE CASCADE,
-    question TEXT NOT NULL,
-    options JSONB NOT NULL,
-    correct_index INTEGER NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create quiz_attempts table (for complete quiz attempts)
-CREATE TABLE IF NOT EXISTS quiz_attempts (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    quiz_set_id UUID REFERENCES quiz_sets(id),
+    quiz_id UUID REFERENCES quizzes(id),
     student_id UUID REFERENCES auth.users(id),
-    total_questions INTEGER NOT NULL,
-    correct_answers INTEGER NOT NULL,
-    score_percentage DECIMAL(5,2) NOT NULL,
-    completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(quiz_set_id, student_id)
-);
-
--- Create quiz_answers table (individual question answers)
-CREATE TABLE IF NOT EXISTS quiz_answers (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    attempt_id UUID REFERENCES quiz_attempts(id) ON DELETE CASCADE,
-    question_id UUID REFERENCES quiz_questions(id),
     selected_index INTEGER NOT NULL,
     is_correct BOOLEAN NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(quiz_id, student_id)
 );
 
 -- Create notifications table

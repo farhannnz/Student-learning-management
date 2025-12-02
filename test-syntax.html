@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Syntax Test</title>
+</head>
+<body>
+    <h1>JavaScript Syntax Test</h1>
+    <div id="result">Testing...</div>
+
+    <script>
+        try {
+            // Test if teacher.js loads without syntax errors
+            const script = document.createElement('script');
+            script.src = 'js/teacher.js';
+            script.onload = () => {
+                document.getElementById('result').innerHTML = '✅ teacher.js loaded successfully - No syntax errors!';
+                document.getElementById('result').style.color = 'green';
+            };
+            script.onerror = () => {
+                document.getElementById('result').innerHTML = '❌ teacher.js has syntax errors!';
+                document.getElementById('result').style.color = 'red';
+            };
+            document.head.appendChild(script);
+        } catch (error) {
+            document.getElementById('result').innerHTML = '❌ Error: ' + error.message;
+            document.getElementById('result').style.color = 'red';
+        }
+    </script>
+</body>
+</html>

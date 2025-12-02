@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Attendance Students</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .student-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Attendance Students</h1>
+    <div id="results"></div>
+    
+    <div style="margin: 20px 0;">
+        <button onclick="checkStudents()" class="btn-primary">Check Existing Students</button>
+        <button onclick="fixRollNumbers()" class="btn-warning">Fix Missing Roll Numbers</button>
+        <button onclick="testAttendanceQuery()" class="btn-success">Test Attendance Query</button>
+    </div>
+    
+    <div id="students-list"></div>
+
+    <!-- Supabase JS -->
+    <script src="js/supabase-local.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        function addResult(message, type = 'success') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        async function checkStudents() {
+            const studentsList = document.getElementById('students-list');
+            addResult('🔍 Checking existing students...', 'warning');
+            
+            try {
+                // Check if roll_number column exists
+                const { data: students, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('role', 'student')
+                    .order('full_name');
+                
+                if (error) {
+                    addResult('❌ Error loading students: ' + error.message, 'error');
+                    return;
+                }
+                
+                addResult(`✅ Found ${students.length} students in database`, 'success');
+                
+                if (students.length === 0) {
+                    studentsList.innerHTML = '<p>❌ No students found in database!</p>';
+                    addResult('❌ No students exist - this is why attendance is empty!', 'error');
+                } else {
+                    let studentsWithRoll = 0;
+                    let studentsWithoutRoll = 0;
+                    
+                    students.forEach(student => {
+                        if (student.roll_number) {
+                            studentsWithRoll++;
+                        } else {
+                            studentsWithoutRoll++;
+                        }
+                    });
+                    
+                    addResult(`📊 Students with roll numbers: ${studentsWithRoll}`, 'success');
+                    addResult(`📊 Students without roll numbers: ${studentsWithoutRoll}`, studentsWithoutRoll > 0 ? 'warning' : 'success');
+                    
+                    studentsList.innerHTML = '<h3>📋 Existing Students:</h3>' + 
+                        students.map((student, index) => `
+                            <div class="student-card">
+                                <strong>${student.full_name}</strong><br>
+                                Roll Number: ${student.roll_number || '❌ MISSING'}<br>
+                                Email: ${student.id}<br>
+                                Created: ${new Date(student.created_at).toLocaleDateString()}
+                            </div>
+                        `).join('');
+                }
+                
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+        
+        async function fixRollNumbers() {
+            addResult('🔧 Fixing missing roll numbers...', 'warning');
+            
+            try {
+                // Get students without roll numbers
+                const { data: students, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('role', 'student')
+                    .is('roll_number', null);
+                
+                if (error) {
+                    addResult('❌ Error getting students: ' + error.message, 'error');
+                    return;
+                }
+                
+                if (students.length === 0) {
+                    addResult('✅ All students already have roll numbers!', 'success');
+                    return;
+                }
+                
+                addResult(`🔧 Fixing ${students.length} students without roll numbers...`, 'warning');
+                
+                // Assign roll numbers
+                for (let i = 0; i < students.length; i++) {
+                    const student = students[i];
+                    const rollNumber = `2024${(i + 1).toString().padStart(3, '0')}`;
+                    
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ roll_number: rollNumber })
+                        .eq('id', student.id);
+                    
+                    if (updateError) {
+                        addResult(`❌ Failed to update ${student.full_name}: ${updateError.message}`, 'error');
+                    } else {
+                        addResult(`✅ Updated ${student.full_name} → Roll: ${rollNumber}`, 'success');
+                    }
+                }
+                
+                addResult('🎉 Roll number fix completed!', 'success');
+                checkStudents(); // Refresh list
+                
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+        
+        async function testAttendanceQuery() {
+            addResult('🧪 Testing attendance query (same as teacher dashboard)...', 'warning');
+            
+            try {
+                // Same query as teacher dashboard
+                const { data: students, error: studentsError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, roll_number')
+                    .eq('role', 'student')
+                    .order('full_name');
+                
+                if (studentsError) {
+                    addResult('❌ Attendance query failed: ' + studentsError.message, 'error');
+                    return;
+                }
+                
+                addResult(`✅ Attendance query successful - found ${students.length} students`, 'success');
+                
+                if (students.length > 0) {
+                    addResult('✅ Students should now appear in attendance tab!', 'success');
+                    
+                    // Show what attendance will see
+                    const attendancePreview = students.map(student => 
+                        `• ${student.full_name} (Roll: ${student.roll_number || 'N/A'})`
+                    ).join('<br>');
+                    
+                    addResult(`📋 Attendance will show:<br>${attendancePreview}`, 'success');
+                } else {
+                    addResult('❌ No students found - attendance will be empty', 'error');
+                }
+                
+            } catch (error) {
+                addResult('❌ Test failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-run on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkStudents();
+        });
+    </script>
+</body>
+</html>

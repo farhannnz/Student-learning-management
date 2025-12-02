@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Students</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .student-card { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>👥 Students Test</h1>
+    <div id="results"></div>
+    <div id="students-list"></div>
+    
+    <h2>➕ Quick Actions</h2>
+    <button onclick="createTestStudent()" style="padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Create Test Student
+    </button>
+    <button onclick="loadStudents()" style="padding: 10px 20px; margin: 5px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Reload Students
+    </button>
+
+    <!-- Supabase JS -->
+    <script src="js/supabase-local.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        function addResult(message, type = 'success') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+        
+        async function loadStudents() {
+            const studentsList = document.getElementById('students-list');
+            studentsList.innerHTML = '<p>Loading students...</p>';
+            
+            try {
+                const { data: students, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('role', 'student')
+                    .order('full_name');
+                
+                if (error) {
+                    addResult('❌ Error loading students: ' + error.message, 'error');
+                    studentsList.innerHTML = '<p>Error loading students</p>';
+                    return;
+                }
+                
+                addResult(`✅ Found ${students.length} students`, 'success');
+                
+                if (students.length === 0) {
+                    studentsList.innerHTML = '<p>No students found. Create some test students first.</p>';
+                } else {
+                    studentsList.innerHTML = '<h3>📋 Students List:</h3>' + 
+                        students.map(student => `
+                            <div class="student-card">
+                                <strong>${student.full_name}</strong><br>
+                                Roll Number: ${student.roll_number || 'Not assigned'}<br>
+                                Email: ${student.id}<br>
+                                Created: ${new Date(student.created_at).toLocaleDateString()}
+                            </div>
+                        `).join('');
+                }
+                
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+        
+        async function createTestStudent() {
+            try {
+                const randomNum = Math.floor(Math.random() * 1000);
+                const email = `student${randomNum}@test.com`;
+                const password = 'student123';
+                const name = `Test Student ${randomNum}`;
+                const rollNumber = `2024${randomNum.toString().padStart(3, '0')}`;
+                
+                addResult('🔄 Creating test student...', 'warning');
+                
+                // Create user account
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    addResult('❌ Error creating user: ' + error.message, 'error');
+                    return;
+                }
+                
+                if (data.user) {
+                    // Create profile
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .insert([{
+                            id: data.user.id,
+                            full_name: name,
+                            roll_number: rollNumber,
+                            role: 'student'
+                        }]);
+                    
+                    if (profileError) {
+                        addResult('❌ Error creating profile: ' + profileError.message, 'error');
+                        return;
+                    }
+                    
+                    addResult(`✅ Created student: ${name} (${rollNumber})`, 'success');
+                    loadStudents(); // Reload list
+                }
+                
+            } catch (error) {
+                addResult('❌ Exception: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-load on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            addResult('🔍 Checking students in database...', 'warning');
+            loadStudents();
+        });
+    </script>
+</body>
+</html>

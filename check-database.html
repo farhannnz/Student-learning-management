@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Check</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .code { background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Database Status Check</h1>
+    <div id="results"></div>
+    
+    <h2>📋 Required SQL Commands</h2>
+    <p>If any tables are missing, run these commands in Supabase SQL Editor:</p>
+    
+    <div class="code">
+-- Add roll_number column to profiles
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS roll_number TEXT;
+
+-- Create quiz_sets table
+CREATE TABLE IF NOT EXISTS quiz_sets (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    teacher_id UUID REFERENCES auth.users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create quiz_questions table  
+CREATE TABLE IF NOT EXISTS quiz_questions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    quiz_set_id UUID REFERENCES quiz_sets(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    options JSONB NOT NULL,
+    correct_index INTEGER NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create quiz_attempts table
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    quiz_set_id UUID REFERENCES quiz_sets(id),
+    student_id UUID REFERENCES auth.users(id),
+    total_questions INTEGER NOT NULL,
+    correct_answers INTEGER NOT NULL,
+    score_percentage DECIMAL(5,2) NOT NULL,
+    completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(quiz_set_id, student_id)
+);
+
+-- Create quiz_answers table
+CREATE TABLE IF NOT EXISTS quiz_answers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    attempt_id UUID REFERENCES quiz_attempts(id) ON DELETE CASCADE,
+    question_id UUID REFERENCES quiz_questions(id),
+    selected_index INTEGER NOT NULL,
+    is_correct BOOLEAN NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="js/supabase-local.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const results = document.getElementById('results');
+            
+            function addResult(message, type = 'success') {
+                const div = document.createElement('div');
+                div.className = `result ${type}`;
+                div.innerHTML = message;
+                results.appendChild(div);
+            }
+            
+            try {
+                addResult('🔍 Checking database status...', 'warning');
+                
+                // Check required tables
+                const requiredTables = [
+                    'profiles', 'materials', 'assignments', 'submissions',
+                    'attendance', 'notifications', 'quiz_sets', 'quiz_questions',
+                    'quiz_attempts', 'quiz_answers'
+                ];
+                
+                for (const table of requiredTables) {
+                    try {
+                        const { data, error } = await supabase
+                            .from(table)
+                            .select('id')
+                            .limit(1);
+                        
+                        if (error) {
+                            if (error.message.includes('does not exist')) {
+                                addResult(`❌ Table "${table}" does not exist - NEEDS TO BE CREATED`, 'error');
+                            } else {
+                                addResult(`⚠️ Table "${table}" has issues: ${error.message}`, 'warning');
+                            }
+                        } else {
+                            addResult(`✅ Table "${table}" exists and accessible`, 'success');
+                        }
+                    } catch (e) {
+                        addResult(`❌ Error checking table "${table}": ${e.message}`, 'error');
+                    }
+                }
+                
+                // Check profiles table structure
+                try {
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('roll_number')
+                        .limit(1);
+                    
+                    if (error && error.message.includes('column "roll_number" does not exist')) {
+                        addResult('❌ Column "roll_number" missing from profiles table - NEEDS TO BE ADDED', 'error');
+                    } else {
+                        addResult('✅ Column "roll_number" exists in profiles table', 'success');
+                    }
+                } catch (e) {
+                    addResult('⚠️ Could not check roll_number column: ' + e.message, 'warning');
+                }
+                
+                // Check data counts
+                const dataTables = ['profiles', 'materials', 'assignments'];
+                for (const table of dataTables) {
+                    try {
+                        const { count, error } = await supabase
+                            .from(table)
+                            .select('*', { count: 'exact', head: true });
+                        
+                        if (error) {
+                            addResult(`⚠️ Could not count ${table}: ${error.message}`, 'warning');
+                        } else {
+                            addResult(`📊 ${table}: ${count} records`, count > 0 ? 'success' : 'warning');
+                        }
+                    } catch (e) {
+                        addResult(`⚠️ Error counting ${table}: ${e.message}`, 'warning');
+                    }
+                }
+                
+                addResult('🎯 Database check completed!', 'success');
+                
+            } catch (error) {
+                addResult('❌ Database check failed: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>

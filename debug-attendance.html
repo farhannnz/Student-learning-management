@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Attendance</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #007bff; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Attendance Display</h1>
+    
+    <div class="debug">
+        <h3>Test 1: Check DOM Elements</h3>
+        <p id="dom-test">Testing...</p>
+    </div>
+    
+    <div class="debug">
+        <h3>Test 2: Check Students Query</h3>
+        <p id="query-test">Testing...</p>
+    </div>
+    
+    <div class="debug">
+        <h3>Test 3: Manual Display Test</h3>
+        <div id="manual-display" style="border: 2px solid #007bff; padding: 15px; margin: 10px 0;">
+            <!-- Manual test will go here -->
+        </div>
+    </div>
+
+    <!-- Supabase JS -->
+    <script src="js/supabase-local.js"></script>
+    <script src="js/supabaseClient.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Test 1: DOM Elements
+            const domTest = document.getElementById('dom-test');
+            const studentsList = document.getElementById('studentsList'); // This is what teacher.html uses
+            
+            if (studentsList) {
+                domTest.innerHTML = '✅ studentsList container found in DOM';
+                domTest.parentElement.className = 'debug success';
+            } else {
+                domTest.innerHTML = '❌ studentsList container NOT found - this is the problem!';
+                domTest.parentElement.className = 'debug error';
+            }
+            
+            // Test 2: Students Query
+            const queryTest = document.getElementById('query-test');
+            try {
+                const { data: students, error } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, roll_number')
+                    .eq('role', 'student')
+                    .order('full_name');
+                
+                if (error) {
+                    queryTest.innerHTML = '❌ Query failed: ' + error.message;
+                    queryTest.parentElement.className = 'debug error';
+                } else {
+                    queryTest.innerHTML = `✅ Query successful: Found ${students.length} students<br>` +
+                        students.map(s => `• ${s.full_name} (Roll: ${s.roll_number || 'N/A'})`).join('<br>');
+                    queryTest.parentElement.className = 'debug success';
+                }
+            } catch (error) {
+                queryTest.innerHTML = '❌ Exception: ' + error.message;
+                queryTest.parentElement.className = 'debug error';
+            }
+            
+            // Test 3: Manual Display
+            const manualDisplay = document.getElementById('manual-display');
+            try {
+                const { data: students } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, roll_number')
+                    .eq('role', 'student')
+                    .order('full_name');
+                
+                if (students && students.length > 0) {
+                    manualDisplay.innerHTML = `
+                        <h4>Manual Student Display (${students.length} students):</h4>
+                        ${students.map(student => `
+                            <div style="border: 1px solid #ddd; padding: 10px; margin: 5px 0; border-radius: 5px;">
+                                <strong>${student.full_name}</strong><br>
+                                Roll: ${student.roll_number || 'Not assigned'}<br>
+                                ID: ${student.id}
+                            </div>
+                        `).join('')}
+                    `;
+                } else {
+                    manualDisplay.innerHTML = '<p>❌ No students to display</p>';
+                }
+            } catch (error) {
+                manualDisplay.innerHTML = '<p>❌ Error: ' + error.message + '</p>';
+            }
+        });
+    </script>
+</body>
+</html>
